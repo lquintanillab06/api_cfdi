@@ -10,11 +10,4 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RemoveField(model_name="codigospostalesmx", name="date_created",),
-        migrations.RemoveField(model_name="codigospostalesmx", name="last_updated",),
-        migrations.AddField(
-            model_name="codigospostalesmx",
-            name="pais",
-            field=models.CharField(blank=True, max_length=255, null=True),
-        ),
     ]
