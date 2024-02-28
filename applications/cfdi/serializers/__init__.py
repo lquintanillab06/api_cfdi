@@ -1,0 +1,3 @@
+from .catalogos_serializer import (ContribuyenteShowSerializer, ContribuyenteSerializer, RegimenFiscalSerializer, UsoDeCfdiSerializer,
+                                   MetodoPagoSerializer,FormaPagoSerializer,TipoComprobanteSerializer,ProductoSatSerializer,UnidadSatSerializer,
+                                   ContribuyenteFormSerializer,FormaPagoSerializer, SubTipoComprobanteSerializer, SubTipoComprobanteFormSerializer, UsoDeCfdiFormSerializer)
