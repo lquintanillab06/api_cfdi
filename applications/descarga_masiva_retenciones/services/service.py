@@ -42,6 +42,8 @@ def solicitar_descarga(contribuyente, tipo_solicitud, fecha_inicial, fecha_final
     # {'id_solicitud': 'fe5b12b2-faae-4829-90d7-3c1030a23a2e', 'cod_estatus': '5000', 'mensaje': 'Solicitud Aceptada'} PAGC
     #{'id_solicitud': '5519daa8-836b-43ab-bd35-7622c0339025', 'cod_estatus': '5000', 'mensaje': 'Solicitud Aceptada'} PAGC
    # {'cod_estatus': '5000', 'estado_solicitud': '1', 'codigo_estado_solicitud': '5000', 'numero_cfdis': '0', 'mensaje': 'Solicitud Aceptada', 'paquetes': []}
+    # {'id_solicitud': '2b6f133a-3435-4b5c-89c9-9e7cb68bcf89', 'cod_estatus': '5000', 'mensaje': 'Solicitud Aceptada'} pagc
+# {'id_solicitud': 'a1bde24c-17a7-4971-9341-a523145dc0b2', 'cod_estatus': '5000', 'mensaje': 'Solicitud Aceptada'}
 
 
 def consultar_solicitud(contribuyente):
@@ -56,7 +58,7 @@ def consultar_solicitud(contribuyente):
     verificacion = VerificaSolicitudDescarga(fiel)
     auth = Autenticacion(fiel)
     token = auth.obtener_token()
-    consulta = verificacion.verificar_descarga(token, 'PAGC721120L48', '5519daa8-836b-43ab-bd35-7622c0339025')
+    consulta = verificacion.verificar_descarga(token, 'PAGC721120L48', 'f2b9ca46-8417-45ee-9b78-d54a1f49f894')
     print("CONSULTA", consulta)
 
 

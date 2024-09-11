@@ -4,4 +4,5 @@ from . import views
 
 urlpatterns = [
     path('buscador_cfdi', views.buscador_cfdi, name='buscador_cfdi'),
+   
 ]

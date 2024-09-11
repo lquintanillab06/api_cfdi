@@ -6,6 +6,7 @@ class SolicitaDescarga(WebServiceRequest):
 
     xml_name = 'solicitadescarga.xml'
     soap_url = 'https://retendescargamasivasolicitud.clouda.sat.gob.mx/SolicitaDescargaService.svc'
+    soap_url = 'https://retendescargamasivasolicitud.clouda.sat.gob.mx/SolicitaDescargaService.svc'
     soap_action = 'http://DescargaMasivaTerceros.sat.gob.mx/ISolicitaDescargaService/SolicitaDescarga'
     solicitud_xpath = 's:Body/des:SolicitaDescarga/des:solicitud'
     result_xpath = 's:Body/SolicitaDescargaResponse/SolicitaDescargaResult'

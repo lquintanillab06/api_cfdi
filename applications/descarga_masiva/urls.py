@@ -11,6 +11,7 @@ urlpatterns = [
     path('descargar_archivo_cfdi/', views.descargar_archivo, name='descargar_archivo_cfdi' ),
     path('solicitudes_por_contribuyente', views.SolicitudesPorContribuyente.as_view(), name='solicitudes_por_contribuyente' ),
     path('get_descarga_solicitud/', views.get_descarga_solicitud, name='get_descarga_solicitud' ),
+    path('solicitud_descarga_cancelados/', views.solicitar_descarga_cancelados, name='solicitud_descarga_cancelados' ),
 ]
 
 urlpatterns += router.urls

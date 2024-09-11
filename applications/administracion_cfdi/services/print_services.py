@@ -11,7 +11,7 @@ from tempfile import TemporaryFile, NamedTemporaryFile
 from io import BytesIO
 
 
-def generate_qr_code(data, filename):
+''' def generate_qr_code(data, filename):
     qr = qrcode.QRCode(
         version=1,
         error_correction=qrcode.constants.ERROR_CORRECT_L,
@@ -22,7 +22,7 @@ def generate_qr_code(data, filename):
     qr.make(fit=True)
 
     img = qr.make_image(fill_color="black", back_color="white")
-    img.save(filename)
+    img.save(filename) '''
 
 
 def get_cadena_original(xml):
@@ -40,7 +40,6 @@ def get_cadena_original(xml):
   
 
 class PDF(FPDF):
-
 
     # Page footer
     def footer(self):
@@ -64,8 +63,8 @@ def print_pdf(xml):
     comprobante = root.attrib
     receptor = root.find('cfdi:Receptor',namespaces).attrib
     emisor = root.find('cfdi:Emisor',namespaces).attrib
-    concepto = root.find('.//cfdi:Concepto', namespaces).attrib
-    conceptos = root.findall('.//cfdi:Conceptos', namespaces)
+    #concepto = root.find('.//cfdi:Concepto', namespaces).attrib
+    conceptos = root.findall('.//cfdi:Concepto', namespaces)
     traslado_nodo = root.xpath('.//cfdi:Traslado', namespaces=namespaces)
     if len(traslado_nodo) > 0:
         traslado = traslado_nodo[0].attrib
@@ -113,7 +112,8 @@ def print_pdf(xml):
     pdf.cell(w=8.5,h=0.35,txt="",align = "C", fill = 0)
     pdf.set_fill_color(r=192 , g= 192, b = 192)
     pdf.set_text_color(r= 0, g= 0, b = 0)
-    pdf.cell(w=3.5,h=0.35,txt=f"{comprobante['FormaPago']}",align = "C", fill = 0)
+    if 'FormaPago' in comprobante:
+        pdf.cell(w=3.5,h=0.35,txt=f"{comprobante['FormaPago']}",align = "C", fill = 0)
     pdf.cell(w=3.5,h=0.35,txt=f"{comprobante['MetodoPago']}",align = "C", fill = 0)
     valorCP=""
     if 'CondicionesDePago' not in comprobante:
@@ -160,6 +160,59 @@ def print_pdf(xml):
     pdf.text(x=3.8,y=4.35,txt=f"FECHA: {comprobante['Fecha']}")
 
 
+       #PRIMERA TABLA 
+    pdf.set_text_color(r= 255, g= 255, b = 255)
+    pdf.set_font('Times', 'B', 7)
+    pdf.cell(w=3,h=0.35,txt="No.IDENTIFICACION",align = "C", fill = 1, border = 1)
+    pdf.cell(w=1.55,h=0.35,txt="CANTIDAD",align = "C", fill = 1, border = 1)
+    pdf.cell(w=2.3,h=0.35,txt="UNIDAD CLAVE",align = "C", fill = 1, border = 1)
+    pdf.cell(w=7.7,h=0.35,txt="DESCRIPCION",align = "C", fill = 1, border = 1)
+    pdf.cell(w=2.5,h=0.35,txt="PRECIO UNIT",align = "C", fill = 1, border = 1)
+    pdf.cell(w=2.45,h=0.35,txt="IMPORTE",align = "C", fill = 1, border = 1,new_x="LMARGIN", new_y="NEXT",)
+    pdf.set_text_color(r= 0, g= 0, b = 0)
+
+    for concepto in conceptos:
+        pdf.set_font('Times', '', 7)
+        if 'NoIdentificacion' not in concepto.attrib:
+            concepto.attrib['NoIdentificacion'] = ""
+        pdf.cell(w=3,h=0.35,txt=f"{concepto.attrib['NoIdentificacion']}",align = "L", fill = 0, border = 1)
+
+        pdf.cell(w=1.55,h=0.35,txt=f"{concepto.attrib['Cantidad']}",align = "C", fill = 0, border = 1)
+        pdf.cell(w=2.3,h=0.35,txt=f"{concepto.attrib['ClaveUnidad']}",align = "L", fill = 0, border = 1)
+        pdf.cell(w=7.7,h=0.35,txt=f"{concepto.attrib['Descripcion']}",align = "L", fill = 0, border = 1)
+        pdf.cell(w=2.5,h=0.35,txt=f"{float(concepto.attrib['ValorUnitario'])}",align = "C", fill = 0, border = 1)
+        pdf.cell(w=2.45,h=0.35,txt=f"{float(concepto.attrib['Importe'])}",align = "C", fill = 0, border = 1,new_x="LMARGIN", new_y="NEXT",)
+        pdf.set_text_color(r= 0, g= 0, b = 0)
+        pdf.set_fill_color(r=192 , g= 192, b = 192)
+        pdf.set_text_color(r= 0, g= 0, b = 0)
+        pdf.set_font('Times', 'B', 5)
+        pdf.cell(w=0.8,h=0.22,txt="",align = "C", fill = 0, border = 0)
+        pdf.cell(w=1.4,h=0.22,txt="CveProdSAT",align = "C", fill = 0, border = 1)
+        pdf.cell(w=1.9,h=0.22,txt="Unidad SAT",align = "C", fill = 0, border = 1)
+        pdf.cell(w=1.9,h=0.22,txt="Descto",align = "C", fill = 0, border = 1)
+        pdf.cell(w=1.9,h=0.22,txt="Impuesto",align = "C", fill = 0, border = 1)
+        pdf.cell(w=1.9,h=0.22,txt="TipoFactor",align = "C", fill = 0, border = 1)
+        pdf.cell(w=1.9,h=0.22,txt="TasaOCuota",align = "C", fill = 0, border = 1)
+        pdf.cell(w=1.9,h=0.22,txt="Base",align = "C", fill = 0, border = 1)
+        pdf.cell(w=1.9,h=0.22,txt="ImprteIva",align = "C", fill = 0, border = 1,ln=1, new_x="LMARGIN", new_y="NEXT",)
+        pdf.set_text_color(r= 0, g= 0, b = 0)
+        pdf.set_font('Times', '', 5)
+        pdf.cell(w=0.8,h=0.22,txt="",align = "C", fill = 0, border = 0,)
+        pdf.cell(w=0.8,h=0.22,txt="",align = "C", fill = 0, border = 0)
+        pdf.cell(w=1.4,h=0.22,txt=f"{concepto.attrib['ClaveProdServ']}",align = "C", fill = 0,border = 1)
+        pdf.cell(w=1.9,h=0.22,txt=f"{concepto.attrib['Unidad']}",align = "C", fill = 0,border = 1)
+        if 'Descuento' not in concepto.attrib:
+            concepto.attrib['Descuento'] = "0.00"
+        pdf.cell(w=1.9,h=0.22,txt=f"{concepto.attrib['Descuento']}",align = "C", fill = 0,border = 1,new_x="LMARGIN", new_y="NEXT") 
+        pdf.ln(0.3)
+        ''' pdf.cell(w=1.9,h=0.22,txt=f"{traslado['Impuesto']}",align = "C", fill = 0,border = 1)
+        pdf.cell(w=1.9,h=0.22,txt=f"{traslado['TipoFactor']}",align = "C", fill = 0,border = 1)
+        pdf.cell(w=1.9,h=0.22,txt=f"{traslado['TasaOCuota']}",align = "C", fill = 0,border = 1)
+        pdf.cell(w=1.9,h=0.22,txt=f"{float(traslado['Base'])}",align = "C", fill = 0,border = 1)
+        pdf.cell(w=1.9,h=0.22,txt=f"{traslado['Importe']}",align = "C", fill = 0,border = 1) '''
+
+ 
+
 
     #TOTALES
     pdf.ln(0.52)
@@ -171,7 +224,7 @@ def print_pdf(xml):
     pdf.cell(w=2,h=0.35,txt=f"{float(comprobante['SubTotal'])}",align = "R", fill = 0, ln=1)
 
     pdf.cell(w=15.5,h=0.55,txt=f"{(ImporteALetra.convertirALetras(float(comprobante['Total'])))}",align = "L", fill = 0, border = 1)
-    #pdf.cell(w=15.5,h=0.55,txt=f"{(ImporteALetra.convertirALetras(19999999))}",align = "L", fill = 0, border = 1)
+     #pdf.cell(w=15.5,h=0.55,txt=f"{(ImporteALetra.convertirALetras(19999999))}",align = "L", fill = 0, border = 1)
     pdf.set_font('Times', 'B', 7)
     pdf.cell(w=2,h=0.35,txt="DESCUENTO",align = "R", fill = 0, border = 0 )
     pdf.set_font('Times', '', 7)
@@ -194,6 +247,10 @@ def print_pdf(xml):
     pdf.cell(w=2,h=0.35,txt=f"{impuestos['TotalImpuestosTrasladados'] if 'TotalImpuestosTrasladados' in impuestos else 0}",align = "R", fill = 0, ln=1)
 
 
+    espacio = pdf.h - pdf.get_y()
+
+    print(espacio)
+
     #pdf.cell(w=12.5,h=0.35,txt="",align = "L", fill = 0,)
     #pdf.set_font('Times', 'B', 7)
     #pdf.cell(w=5,h=0.35,txt="RETENCION",align = "R", fill = 0, )
@@ -207,64 +264,24 @@ def print_pdf(xml):
     pdf.cell(w=2,h=0.35,txt=f"{comprobante['Total']}",align = "R", fill = 0,ln=1)
 
 
+ 
+
     #CUADRO NUMERO 2
     pdf.set_auto_page_break(True, margin = 2)#5 y 2
-    #nn = codigoGenerado(timbrado['UUID'],emisor['Rfc'],receptor['Rfc'])
-    pdf.ln(0.22)
-    pdf.cell(w=0,h=0.55,txt="",align = "C", fill = 0)
-    # pdf.imagenQr("codigoqr.jpg", x = 1, y = None, w = 5, h = 5,type="jpg",
-    # data_qr=f"""https://verificacfdi.facturaelectronica.sat.gob.mx/default.aspx?id={timbrado['UUID']}&re={emisor['Rfc']}&rr={receptor['Rfc']}&tt=0.00&fe=fK7wjA==""")
-    #data_qr=f"""https://verificacfdi.facturaelectronica.sat.gob.mx/default.aspx?re={emisor['Rfc']}&rr={receptor['Rfc']}&tt=0.00&fe=fK7wjA==""")
-    yy = pdf.get_y() - 3.5
-    #pdf.text(x=1,y=None,txt="prueba de texto")
-    pdf.set_text_color(r=0,g=0,b=0)
-    pdf.set_font('Times', 'B', 8)
-    pdf.text(x=7,y=yy,txt="R.F.C. PROV. CERTIF :")
-    pdf.set_font('Times', '', 8)
-    pdf.text(x=10.5,y=yy,txt=f"{timbrado['RfcProvCertif']}")
-    #pdf.text(x=10.5,y=yy,txt=f"test")
+ 
+    print(pdf.h)
+    print(pdf.w)
+    yy = pdf.get_y()
+   
 
-    pdf.set_font('Times', 'B', 8)
-    pdf.text(x=7,y=(yy+0.5),txt="TIPO DE DOCUMENTO :")
-    pdf.set_font('Times', '', 8)
-    if (comprobante['TipoDeComprobante'] == "I"):
-        pdf.text(x=10.5,y=(yy+0.5),txt=f"INGRESO")
-    else:
-        pdf.text(x=10.5,y=(yy+0.5),txt=f"{comprobante['TipoDeComprobante']}")
-    pdf.set_font('Times', 'B', 8)
-    pdf.text(x=7,y=(yy+1),txt="FECHA TIMBRADO :")
-    pdf.set_font('Times', '', 8)
-    pdf.text(x=10.5,y=(yy+1),txt=f"{timbrado['FechaTimbrado']}")
-    #pdf.text(x=10.5,y=(yy+1),txt=f"test")
-
-    pdf.set_font('Times', 'B', 8)
-    pdf.text(x=7,y=(yy+1.5),txt="CERTIFICADO SAT :")
-    pdf.set_font('Times', '', 8)
-    pdf.text(x=10.5,y=(yy+1.5),txt=f"{timbrado['NoCertificadoSAT']}")
-    #pdf.text(x=10.5,y=(yy+1.5),txt=f"test")
-
-    pdf.set_font('Times', 'B', 8)
-    pdf.text(x=7,y=(yy+2),txt="CERTIFICADO EMISOR :")
-    pdf.set_font('Times', '', 8)
-    pdf.text(x=10.5,y=(yy+2),txt=f"{comprobante['NoCertificado']}")
-
-    pdf.ln(0.2)
-    pdf.set_font('Times', 'B', 10)
-    pdf.cell(w=5,h=0.55,txt="SELLO DIGITAL DEL CFDI:",ln=1)
-    pdf.set_font('Times', '', 5)
-    pdf.multi_cell(w=19.5,h=0.35,txt=f"{timbrado['SelloCFD']}",
-    #pdf.multi_cell(w=19.5,h=0.35,txt=f"test",
-    border=1,align="J")
-
-    pdf.ln(0.2)
-    pdf.set_font('Times', 'B', 10)
-    pdf.cell(w=5,h=0.55,txt="SELLO DIGITAL DEL SAT:",ln=1)
-    pdf.set_font('Times', '', 5)
-    pdf.multi_cell(w=19.5,h=0.35,txt=f"{timbrado['SelloSAT']}",
-    #pdf.multi_cell(w=19.5,h=0.35,txt=f"test",
-    border=1,align="J")
-
-    pdf.ln(0.2)
+    print("*"*100)
+    ancho_max = 100
+    print((pdf.get_string_width(str(cadena))))
+    print(type(str(cadena))) 
+    print("*"*100)
+    pdf.set_y(pdf.h - ((pdf.get_string_width(str(cadena))/30)))
+    
+  
     pdf.set_font('Times', 'B', 10)
     pdf.cell(w=5,h=0.55,txt="CADENA ORIGINAL DEL COMPLEMENTO DE CERTIFICACION DIGITAL DEL SAT:",ln=1)
     pdf.set_font('Times', '', 5)
@@ -280,11 +297,12 @@ def print_pdf(xml):
     img.save(imgByteArr, format='JPEG')
     fp.write(imgByteArr.getvalue())
     fp.seek(0)
-    print(fp)
+    #print(fp)
 
     # Agregando la imagen QR al pdf
-    pdf.image(fp,  x=1, y=22, w=5)
+    pdf.image(fp,  x=1, y=16, w=5)
     fp.close() 
+
 
     reporte = bytes(pdf.output())
     return reporte

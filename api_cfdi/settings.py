@@ -17,6 +17,8 @@ from dotenv import load_dotenv
 
 
 
+
+
 load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -49,7 +51,6 @@ DJANGO_APPS = [
 
 LOCAL_APPS = [
     'applications.authentication',
-    'applications.knzl',
     'applications.cfdi',
     'applications.descarga_masiva',
     'applications.commons',
@@ -62,9 +63,10 @@ THIRD_PART_APPS = [
     'corsheaders',
     'rest_framework',
     'rest_framework.authtoken',
+    'applications.knzl',
 ]
 
-INSTALLED_APPS = DJANGO_APPS + LOCAL_APPS + THIRD_PART_APPS
+INSTALLED_APPS = DJANGO_APPS  + THIRD_PART_APPS + LOCAL_APPS
 
 
 MIDDLEWARE = [
@@ -151,6 +153,7 @@ CORS_ALLOW_ALL_ORIGINS = True
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
 STATIC_URL = "static/"
+STATIC_ROOT = os.path.join(BASE_DIR, "static")
 # MEDIA_URL = '/media/'
 # MEDIA_ROOT = '/Users/luisquintanilla/cfdis/LQB/'
 if plataforma == 'Darwin':

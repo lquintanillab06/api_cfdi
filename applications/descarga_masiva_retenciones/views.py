@@ -8,6 +8,7 @@ from applications.descarga_masiva.models import SolicitudDescarga
 
 from .services import  solicitar_descarga,consultar_solicitud
 
+
 # Create your views here.
 @api_view(['GET'])
 def solicitud_descarga_masiva_retenciones(request):

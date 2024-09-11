@@ -8,10 +8,11 @@ from rest_framework.generics import (RetrieveAPIView, ListAPIView,CreateAPIView,
 from applications.cfdi.models import Contribuyente
 from .models import SolicitudDescarga, Descarga, CodigoRespuestaDescarga
 from .serializers.solicittud_serializer import CodigoRespuestaSerializer, SolicitudDescargaSerializer, DescargaSerializer
-from .services import  solicitar_descarga, consultar_solicitud, solicitar_descarga_uuid
+from .services import  solicitar_descarga, consultar_solicitud, solicitar_descarga_uuid, descarga_cancelados
 from .utils.utils import file_iterator
 import datetime
 import os
+
 
 
 
@@ -39,6 +40,41 @@ def solicitud_descarga_masiva(request):
         sol.estatus = solicitud['cod_estatus']
         sol.tipo_solicitud = tipo_descarga
         sol.tipo = tipo
+        if not solicitud['cod_estatus'] == '5000':
+            sol.pendiente = False
+        sol.save() 
+
+        print(sol)
+ 
+        serializer = SolicitudDescargaSerializer(sol)
+        return Response(serializer.data)
+    return JsonResponse({'message':'Descarga Masiva'})
+
+@api_view(['GET'])
+def solicitar_descarga_cancelados(request):
+
+    contribuyente_id = request.query_params['contribuyente_id']
+    f_inicial = request.query_params['fecha_inicial']
+    f_final = request.query_params['fecha_final']
+    tipo_descarga = request.query_params['tipo_descarga']
+    contribuyente = Contribuyente.objects.get(pk=contribuyente_id)
+    print(contribuyente.clave)
+    #token = autenticacion(contribuyente)
+    fecha_inicial = datetime.date.fromisoformat(f_inicial)
+    fecha_final = datetime.date.fromisoformat(f_final)
+    solicitud = descarga_cancelados(contribuyente, tipo_descarga,fecha_inicial, fecha_final)
+    tipo = request.query_params['tipo']
+    print(solicitud)
+    if solicitud:
+        sol = SolicitudDescarga()
+        sol.solicitud_id = solicitud['id_solicitud']
+        sol.rfc = contribuyente.rfc
+        sol.razon_social = contribuyente.razon_social
+        sol.fecha_inicio = fecha_inicial
+        sol.fecha_fin = fecha_final
+        sol.estatus = solicitud['cod_estatus']
+        sol.tipo_solicitud = tipo_descarga
+        sol.tipo = 'CANCELADOS'
         if not solicitud['cod_estatus'] == '5000':
             sol.pendiente = False
         sol.save() 
@@ -98,10 +134,12 @@ def descargar_archivo(request):
 
 
 
+
 class SolicitudesPorContribuyente(ListAPIView):
     serializer_class = SolicitudDescargaSerializer
 
     def get_queryset(self):
+        
         contribuyente_id = self.request.query_params['contribuyente_id']
         fecha_inicial = self.request.query_params['fecha_inicial']
         fecha_final = self.request.query_params['fecha_final']
@@ -138,3 +176,7 @@ class CodigoRespuestaViewset(viewsets.ViewSet):
     def destroy(self, request, pk=None):
         print(request)
         return Response("Succesfully")
+    
+
+
+

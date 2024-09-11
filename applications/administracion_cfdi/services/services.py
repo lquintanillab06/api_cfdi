@@ -1,8 +1,9 @@
-from ..models import ComprobanteFiscal, ComprobanteFiscalConcepto, ComprobanteFiscalImpuesto, ComprobanteFiscalConceptoImpuesto
+from ..models import ComprobanteFiscal, ComprobanteFiscalConcepto, ComprobanteFiscalImpuesto, ComprobanteFiscalConceptoImpuesto, ComprobanteFiscalCancelado
 from zipfile import ZipFile
 from lxml import etree as ET
 from datetime import datetime
 import os
+import csv
 
 def salvar_xmls_from_zip_file(zip_file_path, files_path, tipo, contribuyente):
 
@@ -15,10 +16,14 @@ def salvar_xmls_from_zip_file(zip_file_path, files_path, tipo, contribuyente):
 
     importados = []
     no_importados = []
-
+    comprobantes = []
     with ZipFile(zip_file_path, 'r') as zip:
 
+        counter = 0
+
         for  name in zip.namelist():
+            counter += 1
+            print("*"*50)
             with zip.open(name) as file:
 
                 xml = file.read()
@@ -122,124 +127,62 @@ def salvar_xmls_from_zip_file(zip_file_path, files_path, tipo, contribuyente):
                             comprobante.total_impuestos_retenidos = comprobante_impuestos['TotalImpuestosRetenidos']
 
                     try:
-                        comprobante.save()
-                        importados.append(uuid)
+                        comprobantes.append(comprobante)
+                        #comprobante.save()
+                        #importados.append(uuid)
+                        #print('Comprobante guardado'+uuid)
                     except Exception as e:
                         print(e)
                         print('Error al guardar el comprobante')
-                        no_importados.append(uuid)
+                        #no_importados.append(uuid)
+                        print('Comprobante No importado'+uuid)
                         continue
-                    
-
-                    
-
-                    if len(comprobante_impuestos_nodo) > 0:
-    
-                        traslados_nodo = comprobante_impuestos_nodo[0].xpath('//cfdi:Traslados', namespaces=namespaces)
-                        retenciones_nodo = comprobante_impuestos_nodo[0].xpath('//cfdi:Retenciones', namespaces=namespaces)
-
-                        for traslado_nodo in traslados_nodo:
-                           
-                            traslado = traslado_nodo[0].attrib
-                            comprobante_impuesto = ComprobanteFiscalImpuesto()
-                            comprobante_impuesto.comprobante_fiscal = comprobante
-                            comprobante_impuesto.tipo = 'TRASLADO'
-                            if 'Base' in traslado:
-                                comprobante_impuesto.base = traslado['Base']
-                            comprobante_impuesto.tipo_factor = traslado['TipoFactor']
-                            comprobante_impuesto.impuesto = traslado['Impuesto']
-                            if 'TasaOCuota' in traslado:
-                                comprobante_impuesto.tasa_cuota = traslado['TasaOCuota']
-                            if 'Importe' in traslado:
-                                comprobante_impuesto.importe = traslado['Importe']
-
-                            comprobante_impuesto.save()
-
-                       
-                        for retencion_nodo in retenciones_nodo:
-                           
-                            retencion = retencion_nodo[0].attrib
-                            comprobante_impuesto = ComprobanteFiscalImpuesto()
-                            comprobante_impuesto.comprobante_fiscal = comprobante
-                            comprobante_impuesto.tipo = 'RETENCION'
-                            comprobante_impuesto.impuesto = retencion['Impuesto']
-                            comprobante_impuesto.importe = retencion['Importe']
-
-                            comprobante_impuesto.save()
-
-                    conceptos = root.xpath('//cfdi:Comprobante/cfdi:Conceptos/cfdi:Concepto', namespaces=namespaces)
-
-                    # Conceptos
-                    for concepto_nodo in conceptos:
-                        concepto = concepto_nodo.attrib
-                        comprobante_concepto = ComprobanteFiscalConcepto()
-                        comprobante_concepto.comprobante_fiscal = comprobante
-                        comprobante_concepto.clave_prod_serv = concepto['ClaveProdServ']
-                        comprobante_concepto.cantidad = concepto['Cantidad']
-                        comprobante_concepto.clave_unidad = concepto['ClaveUnidad']
-                        comprobante_concepto.descripcion = concepto['Descripcion']
-                        comprobante_concepto.valor_unitario = concepto['ValorUnitario']
-                        comprobante_concepto.importe = concepto['Importe']
-                        if 'ObjetoImp' in concepto:
-                            comprobante_concepto.objeto_impuesto = concepto['ObjetoImp']
-                        if 'NoIdentificacion' in concepto:
-                            comprobante_concepto.no_identificacion = concepto['NoIdentificacion']
-                        if 'Unidad' in concepto:
-                            comprobante_concepto.unidad = concepto['Unidad']
-                        if 'Descuento' in concepto:
-                            comprobante_concepto.descuento = concepto['Descuento']
-
-                        comprobante_concepto.save()
-                            
-                        # Impuestos
-                            
-                        # Traslados
-
-                        traslados = concepto_nodo.xpath('//cfdi:Impuestos/cfdi:Traslados', namespaces=namespaces)
-
-                        for traslado_nodo in traslados:
-                            traslado = traslado_nodo[0].attrib
-                            comprobante_concepto_impuesto = ComprobanteFiscalConceptoImpuesto()
-                            comprobante_concepto_impuesto.comprobante_fiscal_concepto= comprobante_concepto
-                            comprobante_concepto_impuesto.tipo = 'TRASLADO'
-                            if 'Base' in traslado:
-                                comprobante_concepto_impuesto.base = traslado['Base']
-                            comprobante_concepto_impuesto.tipo_factor = traslado['TipoFactor']
-                            comprobante_concepto_impuesto.impuesto = traslado['Impuesto']
-                            if 'Importe' in traslado:
-                                comprobante_concepto_impuesto.importe = traslado['Importe']
-
-                            if 'TasaOCuota' in traslado:
-                                comprobante_concepto_impuesto.tasa_cuota = traslado['TasaOCuota']
-
-                            comprobante_concepto_impuesto.save()
-                                
-                        # Retenciones        
-
-                        retenciones = concepto_nodo.xpath('//cfdi:Impuestos/cfdi:Retenciones', namespaces=namespaces)
-
-                        for retencion_nodo in retenciones :
-                            retencion = retencion_nodo[0].attrib
-                            comprobante_concepto_impuesto = ComprobanteFiscalConceptoImpuesto()
-                            comprobante_concepto_impuesto.comprobante_fiscal_concepto= comprobante_concepto
-                            comprobante_concepto_impuesto.tipo = 'RETENCION'
-                            if 'Base' in retencion:
-                                comprobante_concepto_impuesto.base = retencion['Base']
-                            comprobante_concepto_impuesto.tipo_factor = retencion['TipoFactor']
-                            comprobante_concepto_impuesto.impuesto = retencion['Impuesto']
-                            comprobante_concepto_impuesto.importe = retencion['Importe']
-                            if 'TasaOCuota' in retencion:
-                                comprobante_concepto_impuesto.tasa_cuota = retencion['TasaOCuota']   
-
-                            comprobante_concepto_impuesto.save() 
                 else:
                     print('El comprobante no pertenece al contribuyente')
-                    no_importados.append(uuid)
+                    #no_importados.append(uuid)
+        #print(comprobantes)
+        ComprobanteFiscal.objects.bulk_create(comprobantes,update_conflicts=True, update_fields=['uuid'])
+        print('Total de comprobantes '+str(counter))    
                                        
     return importados, no_importados
 
 
+def validar_cancelados(zip_file_path, contribuyente):
 
+    print('Validando cancelados')
+    with ZipFile(zip_file_path, 'r') as zip:
 
+        for  name in zip.namelist():
+            with zip.open(name) as file:
 
+                lines = file.readlines()
 
+                for line in lines:
+                    if not line == lines[0]:
+                       row = line.decode('utf-8').split('~')   
+                       if len(row) > 11:
+                            if row[10] == '0' :
+                                print(row[0])
+                                print(row[10])
+                                print(row[11])
+                                found = ComprobanteFiscal.objects.filter(uuid=row[0], contribuyente=contribuyente).first()
+                                print(found)
+                                print("_"*50)
+                                if found != None:
+                                    found_cancelado = ComprobanteFiscalCancelado.objects.filter(comprobante_fiscal=found).first()
+                                    if found_cancelado == None:
+                                        cancelado = ComprobanteFiscalCancelado()
+                                        cancelado.comprobante_fiscal = found
+                                        cancelado.fecha_cancelacion = row[11]
+                                        cancelado.rfc_receptor = row[3]
+                                        cancelado.nombre_receptor = row[4]
+                                        cancelado.rfc_emisor = row[1]
+                                        cancelado.nombre_emisor = row[2]
+                                        cancelado.uuid = row[0]
+                                        cancelado.cancelado = True
+                                        cancelado.save()  
+                                        found.cancelado = True
+                                        found.save()  
+                                        print('Comprobante cancelado') 
+                            
+                    

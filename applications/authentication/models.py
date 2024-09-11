@@ -42,6 +42,11 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def get_fullname(self):
         return f"{self.nombres} {self.apellidos}"
+    
+    ''' def save(self, *args, **kwargs):
+        if self.password is not None:
+            self.set_password(self.password)
+        super(User, self).save(*args, **kwargs) '''
 
     class Meta:
         managed = True

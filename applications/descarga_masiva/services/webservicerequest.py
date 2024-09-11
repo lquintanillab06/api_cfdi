@@ -70,17 +70,19 @@ class WebServiceRequest(Utils):
         logger.debug('Request headers: %s', headers)
         logger.debug('Request soap_request: %s', soap_request)
 
-        ''' print("__"*100)
+        print("__"*100)
         print(soap_request)
-        print("*"*100)   '''
+        print("*"*100)   
 
         response = requests.post(
             self.soap_url,
             data=soap_request,
             headers=headers,
             verify=self.verify,
-            timeout=self.timeout,
+            
         )
+
+        # timeout=self.timeout,
 
         logger.debug('Response headers: %s', response.headers)
         logger.debug('Response text: %s', response.text)
