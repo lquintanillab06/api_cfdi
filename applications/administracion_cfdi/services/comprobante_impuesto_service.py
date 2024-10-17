@@ -1,5 +1,6 @@
 from applications.administracion_cfdi.models import ComprobanteFiscal
 from django.db.models import Q
+from decimal import Decimal
 from ..models import SatComprobanteImpuestos
 from lxml import etree as ET
 import pandas as pd
@@ -47,13 +48,33 @@ def make_comprobante_impuestos(tipo , contribuyente, fecha_inicial, fecha_final)
             comprobante_impuestos_nodo = root.xpath('//cfdi:Comprobante/cfdi:Impuestos', namespaces=namespaces)
             total_impuestos_trasladados = 0
             total_impuestos_retenidos = 0
+            base = 0
+            base_excenta = 0
             if len(comprobante_impuestos_nodo) > 0:
                 comprobante_impuestos = comprobante_impuestos_nodo[0].attrib
                 if 'TotalImpuestosTrasladados' in comprobante_impuestos:
                     total_impuestos_trasladados = comprobante_impuestos['TotalImpuestosTrasladados']
-                    #print(total_impuestos_trasladados)
+                    traslado_nodo = root.xpath('//cfdi:Comprobante/cfdi:Impuestos/cfdi:Traslados/cfdi:Traslado', namespaces=namespaces)
+                    ''' if len(traslado_nodo) >0:
+                        trd = traslado_nodo[0].attrib
+                        print(trd)
+                        base = trd['Base'] '''
+                    if len(traslado_nodo) >0:
+                        for trd_nodo in traslado_nodo:
+                            trd = trd_nodo.attrib
+                            #print(trd)
+                            if trd['TasaOCuota']=='0.000000':
+                                base_excenta += Decimal(trd['Base'])
+                            if trd['TasaOCuota']=='0.160000':
+                                base += Decimal(trd['Base'])
+                            #print(total_impuestos_trasladados)
+                                #print(total_impuestos_trasladados)
+                    else:
+                        base = comprobante.subtotal
                 if 'TotalImpuestosRetenidos' in comprobante_impuestos:
                     total_impuestos_retenidos = comprobante_impuestos['TotalImpuestosRetenidos']
+                    if 'TotalImpuestosTrasladados' not in comprobante_impuestos:
+                        base = comprobante.subtotal
                     #print(total_impuestos_retenidos)
 
             # Comprobante Dictionary
@@ -71,6 +92,8 @@ def make_comprobante_impuestos(tipo , contribuyente, fecha_inicial, fecha_final)
                     'metodo_pago':comprobante.metodo_pago,
                     'uso_cfdi': comprobante.uso_cfdi,
                     'moneda':comprobante.moneda,
+                    'base': base,
+                    'base_excenta': base_excenta,
                     'total_impuestos_trasladados': total_impuestos_trasladados,
                     'total_impuestos_retenidos': total_impuestos_retenidos,
                     'tipo_cambio': comprobante.tipo_cambio if comprobante.tipo_cambio else 1.00,
@@ -98,14 +121,24 @@ def make_comprobante_impuestos(tipo , contribuyente, fecha_inicial, fecha_final)
      
 
         if comprobante.tipo_de_comprobante == 'P':
+            
+            totales_nodo = retenciones = root.xpath('//pago20:Totales', namespaces=namespaces)    
+            totales = totales_nodo[0].attrib
+
+            comprobante_dict['subtotal'] = totales['TotalTrasladosBaseIVA16']
+            comprobante_dict['total'] = totales['MontoTotalPagos']
+            comprobante_dict['base'] = totales['TotalTrasladosBaseIVA16']
+            comprobante_dict['total_impuestos_trasladados'] = totales['TotalTrasladosImpuestoIVA16']
+
+
             traslados = retenciones = root.xpath('//pago20:TrasladoP', namespaces=namespaces)
             for traslado_nodo in traslados:
                 traslado = traslado_nodo.attrib
                 comprobante_dict['total_impuestos_retenidos'] = 0
-                comprobante_dict['total_impuestos_trasladados'] = 0
                 traslado_dict = {
                         "Base":traslado['BaseP'] if 'BaseP' in traslado else 0,
-                        "Importe": traslado['ImporteP'] if 'ImporteP' in traslado else 0,
+                        #"Importe": traslado['ImporteP'] if 'ImporteP' in traslado else 0,
+                        "Importe":totales['TotalTrasladosImpuestoIVA16'],
                         "Impuesto": traslado['ImpuestoP'] if 'ImpuestoP' in traslado else 0,
                         "TasaOCuota": traslado['TasaOCuotaP'] if 'TasaOCuotaP' in traslado else 0,
                         "TipoFactor": traslado['TipoFactorP'] if 'TipoFactorP' in traslado else 0
@@ -147,7 +180,7 @@ def make_comprobante_impuestos(tipo , contribuyente, fecha_inicial, fecha_final)
 
         df_acum = df_acum.rename(columns={'Estatus':'estado','Trasladado$': 'iva_trasladado_importe','Trasladado%': 'iva_trasladado_porc','RetencionIva$': 'iva_retenido_importe','RetencionIva%': 'iva_retenido_porc','RetencionIsr$': 'isr_retenido_importe','RetencionIsr%': 'isr_retenido_porc'})
 
-        df_unique_first = df_unique_first.rename(columns={'Base':'base'})
+        #df_unique_first = df_unique_first.rename(columns={'Base':'base'})
         df_inter = df_unique_first.merge(df_acum,on='comprobante')
 
 
@@ -155,16 +188,16 @@ def make_comprobante_impuestos(tipo , contribuyente, fecha_inicial, fecha_final)
     
         df_result['iva_trasladado_importe'] = df_result['iva_trasladado_importe'].apply(lambda x: '{:.2f}'.format(x))
 
-        columnas = ['descuento','subtotal','total','base','iva_trasladado_importe','iva_retenido_importe','isr_retenido_importe','total_impuestos_trasladados','total_impuestos_retenidos']
+        #columnas = ['descuento','subtotal','total','base','iva_trasladado_importe','iva_retenido_importe','isr_retenido_importe','total_impuestos_trasladados','total_impuestos_retenidos']
 
-        for columna in columnas:
-            df_result[columna] = df_result['tipo_cambio'].astype(float)* df_result[columna].astype(float)
+        ''' for columna in columnas:
+            df_result[columna] = df_result['tipo_cambio'].astype(float)* df_result[columna].astype(float) '''
 
 
         columns =['comprobante','rfc_receptor','receptor','rfc_emisor','emisor','fecha','fecha_timbrado','uuid','serie','folio',
                     'forma_pago','metodo_pago','uso_cfdi','moneda','total_impuestos_trasladados','total_impuestos_retenidos',
                     'tipo_cambio','tipo_comprobante','descuento','subtotal','total','base','cancelado','iva_trasladado_importe',
-                    'iva_trasladado_porc','iva_retenido_importe','iva_retenido_porc','isr_retenido_importe','isr_retenido_porc']
+                    'iva_trasladado_porc','iva_retenido_importe','iva_retenido_porc','isr_retenido_importe','isr_retenido_porc','base_excenta']
         
         df_def = df_result[columns]
         dict = df_def.to_dict(orient='records')
@@ -209,9 +242,21 @@ def get_referencias_recibidos(receptor, fecha_inicial, fecha_final):
                 comprobante.fecha_pago = item['fecha_pago']
                 comprobante.forma_de_pago = item['forma_de_pago']
                 comprobante.referencia_pago = item['referencia']
+                comprobante.tipo_de_cambio_pago = Decimal(item['tipo_de_cambio_pago'])
+        
+                comprobante.descuento = comprobante.descuento * comprobante.tipo_de_cambio_pago
+                comprobante.subtotal = comprobante.subtotal * comprobante.tipo_de_cambio_pago
+                comprobante.total = comprobante.total * comprobante.tipo_de_cambio_pago
+                comprobante.base = comprobante.base * comprobante.tipo_de_cambio_pago
+                comprobante.iva_trasladado_importe = comprobante.iva_trasladado_importe * comprobante.tipo_de_cambio_pago
+                comprobante.iva_retenido_importe = comprobante.iva_retenido_importe * comprobante.tipo_de_cambio_pago
+                comprobante.isr_retenido_importe = comprobante.isr_retenido_importe * comprobante.tipo_de_cambio_pago
+                comprobante.total_impuestos_trasladados = comprobante.total_impuestos_trasladados * comprobante.tipo_de_cambio_pago
+                comprobante.total_impuestos_retenidos = comprobante.total_impuestos_retenidos * comprobante.tipo_de_cambio_pago
+
                 lista_comprobantes.append(comprobante)
 
-            SatComprobanteImpuestos.objects.bulk_update(lista_comprobantes, ['fecha_pago','forma_de_pago','referencia_pago'])
+            SatComprobanteImpuestos.objects.bulk_update(lista_comprobantes, ['descuento','subtotal','total','base','iva_trasladado_importe','iva_retenido_importe','isr_retenido_importe','total_impuestos_trasladados','total_impuestos_retenidos','fecha_pago','forma_de_pago','referencia_pago','tipo_de_cambio_pago'])
 
     else:   
         print("Error")
@@ -257,8 +302,21 @@ def get_referencias_emitidos(emisor,fecha_inicial,fecha_final):
                 comprobante.referencia_pago = item['referencia']
                 comprobante.sucursal = item['sucursal']
                 comprobante.tipo_documento = item['tipo']
+
+                comprobante.tipo_de_cambio_pago = Decimal(item['tipo_de_cambio_cobro'])
+        
+                comprobante.descuento = comprobante.descuento * comprobante.tipo_de_cambio_pago
+                comprobante.subtotal = comprobante.subtotal * comprobante.tipo_de_cambio_pago
+                comprobante.total = comprobante.total * comprobante.tipo_de_cambio_pago
+                comprobante.base = comprobante.base * comprobante.tipo_de_cambio_pago
+                comprobante.iva_trasladado_importe = comprobante.iva_trasladado_importe * comprobante.tipo_de_cambio_pago
+                comprobante.iva_retenido_importe = comprobante.iva_retenido_importe * comprobante.tipo_de_cambio_pago
+                comprobante.isr_retenido_importe = comprobante.isr_retenido_importe * comprobante.tipo_de_cambio_pago
+                comprobante.total_impuestos_trasladados = comprobante.total_impuestos_trasladados * comprobante.tipo_de_cambio_pago
+                comprobante.total_impuestos_retenidos = comprobante.total_impuestos_retenidos * comprobante.tipo_de_cambio_pago
                 lista_comprobantes.append(comprobante)
-            SatComprobanteImpuestos.objects.bulk_update(lista_comprobantes, ['fecha_pago','forma_de_pago','referencia_pago','sucursal','tipo_documento'])
+
+            SatComprobanteImpuestos.objects.bulk_update(lista_comprobantes, ['descuento','subtotal','total','base','iva_trasladado_importe','iva_retenido_importe','isr_retenido_importe','total_impuestos_trasladados','total_impuestos_retenidos','fecha_pago','forma_de_pago','referencia_pago','sucursal','tipo_documento'])
     else:   
         print("Error")
         print(response.status_code)

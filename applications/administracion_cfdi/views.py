@@ -222,11 +222,11 @@ def get_sat_comprobantes_impuestos_ppd(request):
     fecha_final = request.query_params.get('fecha_final')
     comprobantes = []
     if tipo == 'EMITIDOS':
-        comprobantes = SatComprobanteImpuestos.objects.filter(emisor=contribuyente,metodo_pago = 'PPD' , fecha_pago__range=[fecha_inicial, fecha_final]).order_by('fecha_pago')
+        comprobantes = SatComprobanteImpuestos.objects.filter(emisor=contribuyente, fecha_pago__range=[fecha_inicial, fecha_final]).order_by('fecha_pago')
         serializer = SatComprobanteImpuestosSerializer(comprobantes, many=True)
         return Response({"data":serializer.data,"message":"OK"})
     if tipo == 'RECIBIDOS':
-        comprobantes = SatComprobanteImpuestos.objects.filter(receptor=contribuyente,metodo_pago = 'PPD', fecha_pago__range=[fecha_inicial, fecha_final]).order_by('fecha_pago')
+        comprobantes = SatComprobanteImpuestos.objects.filter(receptor=contribuyente, fecha_pago__range=[fecha_inicial, fecha_final]).order_by('fecha_pago')
         serializer = SatComprobanteImpuestosSerializer(comprobantes, many=True)
         return Response({"data":serializer.data,"message":"OK"})
 
@@ -247,18 +247,23 @@ def exportar_impuestos_csv(request):
 
     if tipo == 'EMITIDOS':
         comprobantes = SatComprobanteImpuestos.objects.filter(emisor=contribuyente, fecha__date__range=[fecha_inicial, fecha_final]).order_by('fecha')  
+
     if tipo == 'RECIBIDOS':
         comprobantes = SatComprobanteImpuestos.objects.filter(receptor=contribuyente, fecha__date__range=[fecha_inicial, fecha_final]).order_by('fecha')
-    
-    if tipo == 'PPD':
-        comprobantes = SatComprobanteImpuestos.objects.filter(receptor=contribuyente, metodo_pago='PPD', fecha_pago__range=[fecha_inicial, fecha_final]).order_by('fecha_pago')
+
+    if tipo == 'EMITIDOS_PPD':
+         comprobantes = SatComprobanteImpuestos.objects.filter(emisor=contribuyente, fecha_pago__range=[fecha_inicial, fecha_final]).order_by('fecha_pago')
+
+    if tipo == 'RECIBIDOS_PPD':
+        comprobantes = SatComprobanteImpuestos.objects.filter(receptor=contribuyente, fecha_pago__range=[fecha_inicial, fecha_final]).order_by('fecha_pago')
 
     df = pd.DataFrame(list(comprobantes.values('id','emisor','rfc_emisor','receptor','rfc_receptor','fecha','fecha_timbrado','uuid','serie','folio','forma_pago','metodo_pago','moneda',
-                                               'tipo_cambio','tipo_comprobante','descuento','subtotal','total','iva_trasladado_porc','iva_trasladado_importe','iva_retenido_porc','iva_retenido_importe',
+                                               'tipo_cambio','uso_cfdi','tipo_comprobante','descuento','subtotal','total','base','iva_trasladado_porc','iva_trasladado_importe','iva_retenido_porc','iva_retenido_importe',
                                                'isr_retenido_porc','isr_retenido_importe','cancelado','total_impuestos_trasladados','total_impuestos_retenidos','aclaracion_referencia','fecha_pago','forma_de_pago','referencia_pago')))
     
 
-    # Generar el archivo CSV en memoria
+
+# Generar el archivo CSV en memoria
     csv_buffer = df.to_csv(index=False)
     # Devolver el archivo CSV como respuesta HTTP
     response = HttpResponse(csv_buffer, content_type='text/csv')

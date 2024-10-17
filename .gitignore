@@ -1,4 +1,18 @@
 # misc
 .DS_Store
-.env
 *.pyc
+/api_embarques/conf
+conf
+.env
+
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
